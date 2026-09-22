@@ -1,0 +1,11 @@
+{
+  "name": "Claudio",
+  "short_name": "Claudio",
+  "description": "Auxiliar que enfileira e dosa ordens para o Claude",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1b1a",
+  "theme_color": "#1c1b1a",
+  "lang": "pt-BR",
+  "icons": [{ "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

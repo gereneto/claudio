@@ -1,0 +1,33 @@
+{
+  "name": "claudio",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Auxiliar pessoal que enfileira e dosa ordens para o Claude Code ao longo da semana",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "fase0:headless": "tsx fase0/01-headless.ts",
+    "fase0:hooks": "tsx fase0/02-hooks.ts",
+    "fase0:permissao": "tsx fase0/03-permissao.ts",
+    "fase0:decisao": "tsx fase0/04-decisao.ts",
+    "dev": "tsx server/src/index.ts",
+    "build": "npm run build -w web",
+    "typecheck": "tsc -p server/tsconfig.json && tsc -p web/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@lydell/node-pty": "^1.2.0-beta.15",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5"
+  }
+}

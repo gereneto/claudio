@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "claudio",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "server/src/index.ts"
+      ],
+      "port": 3737
+    },
+    {
+      "name": "fase0",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "fase0/todos.ts"
+      ],
+      "port": 47900
+    },
+    {
+      "name": "fase0-extra",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "tsx",
+        "fase0/todos.ts",
+        "06-pty.ts"
+      ],
+      "port": 47900
+    }
+  ]
+}
