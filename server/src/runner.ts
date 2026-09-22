@@ -29,7 +29,8 @@ const SCHEMA_SAIDA = JSON.stringify({
 function promptSistema(ordem: Ordem, projeto: Projeto): string {
   const partes = [
     "Você está executando uma ordem do Claudio, um orquestrador pessoal. O usuário não está acompanhando em tempo real: ele lê só um resumo curto e responde decisões pelo celular.",
-    "Regras: não faça perguntas retóricas; se realmente precisar de uma decisão do usuário, encerre devolvendo status precisa_decisao com pergunta e opcoes. Não gaste tokens relendo arquivos grandes sem necessidade. Não crie commits nem faça push a menos que a ordem peça.",
+    "Regras: não faça perguntas retóricas; se realmente precisar de uma decisão do usuário, use AskUserQuestion (ou encerre devolvendo status precisa_decisao com pergunta e opcoes). Não gaste tokens relendo arquivos grandes sem necessidade.",
+    "Git: ao terminar um trabalho que altera arquivos, faça commits com mensagens claras em português (um commit por assunto) e dê push para o repositório remoto, salvo se a ordem disser o contrário. Nunca use force push nem reescreva histórico.",
     "Ao terminar, devolva o JSON pedido com um resumo de 3 a 5 linhas em português, direto ao ponto: o que foi feito, o que ficou pendente, arquivos principais tocados.",
   ];
   if (ordem.tipo === "continua") {
@@ -90,8 +91,12 @@ function arquivoMcp(chave: string, env: Record<string, string>): string {
 /** Flags comuns: permissões pelo MCP do Claudio + prazo longo para a ferramenta MCP esperar o celular. */
 function permissoesPeloClaudio(chave: string, env: Record<string, string>) {
   const timeoutMs = (Number(lerConfig("timeout_permissao_seg", "1800")) + 60) * 1000;
+  const permitidas = lerConfig("ferramentas_permitidas", "Bash(git add *),Bash(git commit *),Bash(git push *),Bash(git status *),Bash(git diff *),Bash(git log *)")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   return {
-    extra: ["--permission-prompt-tool", "mcp__claudio__aprovar", "--mcp-config", arquivoMcp(chave, env)],
+    extra: ["--permission-prompt-tool", "mcp__claudio__aprovar", "--mcp-config", arquivoMcp(chave, env), ...(permitidas.length ? ["--allowedTools", ...permitidas] : [])],
     env: { MCP_TOOL_TIMEOUT: String(timeoutMs), MCP_TIMEOUT: "60000" },
   };
 }

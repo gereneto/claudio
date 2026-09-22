@@ -218,7 +218,7 @@ app.post("/api/limites/manual", async (c) => {
 });
 
 // ---------- Config ----------
-const chavesConfig = ["modelo_executor", "modelo_chat", "teto_h5_pct", "folga_semanal_pct", "reserva_pontual_pct", "intervalo_continua_min", "max_paralelas", "max_turns_pontual", "max_turns_continua", "timeout_permissao_seg"];
+const chavesConfig = ["modelo_executor", "modelo_chat", "modelo_sentinela", "teto_h5_pct", "folga_semanal_pct", "reserva_pontual_pct", "intervalo_continua_min", "max_paralelas", "max_turns_pontual", "max_turns_continua", "timeout_permissao_seg", "limites_max_idade_min", "ferramentas_permitidas"];
 app.get("/api/config", (c) => c.json(Object.fromEntries(chavesConfig.map((k) => [k, lerConfig(k, "")]))));
 app.patch("/api/config", async (c) => {
   const d = (await c.req.json()) as Record<string, string>;
