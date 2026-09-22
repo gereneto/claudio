@@ -25,10 +25,12 @@ export function proximaOrdem(): { ordem: Ordem; motivoBloqueio?: string } | unde
     const av = avaliar("pontual");
     return av.podeRodar ? { ordem: pontual } : { ordem: pontual, motivoBloqueio: av.motivo };
   }
+  // O intervalo entre blocos conta a partir do fim da última execução da ordem, não de edições.
   const continua = um<Ordem>(
     `SELECT * FROM ordens WHERE ligada = 1 AND estado = 'fila' AND tipo = 'continua'
-       AND (atualizado_em <= datetime('now', ?) OR NOT EXISTS (SELECT 1 FROM execucoes e WHERE e.ordem_id = ordens.id))
-     ORDER BY prioridade ASC, atualizado_em ASC LIMIT 1`,
+       AND NOT EXISTS (SELECT 1 FROM execucoes e WHERE e.ordem_id = ordens.id AND (e.fim IS NULL OR e.fim > datetime('now', ?)))
+     ORDER BY prioridade ASC,
+       (SELECT MAX(e.fim) FROM execucoes e WHERE e.ordem_id = ordens.id) ASC NULLS FIRST LIMIT 1`,
     `-${intervaloContinuaMin} minutes`,
   );
   if (continua) {
@@ -55,7 +57,7 @@ async function tique() {
     await atualizarSeVelho();
     const escolha = proximaOrdem();
     if (!escolha) {
-      anotar("fila vazia");
+      anotar(`${haFila} ordem(ns) contínua(s) aguardando o intervalo entre blocos`);
       return;
     }
     if (escolha.motivoBloqueio) {
