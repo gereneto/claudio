@@ -223,7 +223,7 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
     sessionId,
     saida?.progresso_feito ?? null,
     saida?.progresso_total ?? null,
-    saida?.unidade ?? null,
+    ordem.unidade ? null : (saida?.unidade ?? null),
     estado,
     ordem.id,
   );

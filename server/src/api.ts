@@ -79,16 +79,17 @@ app.get("/api/ordens", (c) => {
   return c.json(ordens);
 });
 
-const ordemNova = z.object({
+const camposOrdem = {
   projeto_id: z.number().int(),
   titulo: z.string().min(1),
   prompt: z.string().min(1),
-  tipo: z.enum(["pontual", "continua"]).default("pontual"),
-  prioridade: z.number().int().min(1).max(9).default(5),
+  tipo: z.enum(["pontual", "continua"]),
+  prioridade: z.number().int().min(1).max(9),
   unidade: z.string().nullable().optional(),
   progresso_total: z.number().int().nullable().optional(),
   criterio_fim: z.string().nullable().optional(),
-});
+};
+const ordemNova = z.object({ ...camposOrdem, tipo: camposOrdem.tipo.default("pontual"), prioridade: camposOrdem.prioridade.default(5) });
 app.post("/api/ordens", async (c) => {
   const d = ordemNova.parse(await c.req.json());
   const r = executar(
@@ -107,7 +108,12 @@ app.post("/api/ordens", async (c) => {
   return c.json(ordem, 201);
 });
 
-const ordemPatch = ordemNova.partial().extend({ ligada: z.number().int().min(0).max(1).optional(), estado: z.enum(["fila", "pausada", "concluida"]).optional() });
+// Sem valores padrão: um PATCH só toca nos campos enviados.
+const ordemPatch = z.object(camposOrdem).partial().extend({
+  ligada: z.number().int().min(0).max(1).optional(),
+  estado: z.enum(["fila", "pausada", "concluida"]).optional(),
+  progresso_feito: z.number().int().min(0).optional(),
+});
 app.patch("/api/ordens/:id", async (c) => {
   const id = idParam(c);
   const d = ordemPatch.parse(await c.req.json());
