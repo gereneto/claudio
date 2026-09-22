@@ -15,7 +15,12 @@
     "fase0:decisao": "tsx fase0/04-decisao.ts",
     "dev": "tsx server/src/index.ts",
     "build": "npm run build -w web",
-    "typecheck": "tsc -p server/tsconfig.json && tsc -p web/tsconfig.json"
+    "typecheck": "tsc -p server/tsconfig.json && tsc -p web/tsconfig.json",
+    "servico:instalar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/servico.ps1 instalar",
+    "servico:remover": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/servico.ps1 remover",
+    "servico:iniciar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/servico.ps1 iniciar",
+    "servico:parar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/servico.ps1 parar",
+    "servico:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/servico.ps1 status"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
