@@ -1,5 +1,5 @@
 // Runner: executa uma ordem (ou um pedaço dela) chamando o Claude Code em modo headless.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { createWriteStream, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { extrairRateLimits, rodarClaude, textoDoEvento, type Evento } from "./claude.ts";
 import { config } from "./config.ts";
@@ -121,15 +121,27 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
   emExecucao.set(ordem.id, controlador);
   registrarMensagem(conversa.id, "claudio", "sistema", opcoes.respostaDecisao ? "Retomando com a sua resposta." : `Iniciando execução com ${modelo}.`);
 
-  const prompt = opcoes.respostaDecisao ? `Decisão do usuário: ${opcoes.respostaDecisao}. Prossiga.` : ordem.prompt;
-  const retomar = opcoes.respostaDecisao && ordem.session_id ? ordem.session_id : undefined;
+  // Retoma a sessão anterior quando há resposta de decisão ou quando a última execução foi interrompida.
+  const ultimaExec = um<Execucao>("SELECT * FROM execucoes WHERE ordem_id = ? AND id < ? ORDER BY id DESC LIMIT 1", ordem.id, execId);
+  const continuar = !opcoes.respostaDecisao && ultimaExec?.resultado === "interrompida" && !!ordem.session_id;
+  const prompt = opcoes.respostaDecisao
+    ? `Decisão do usuário: ${opcoes.respostaDecisao}. Prossiga.`
+    : continuar
+      ? `A execução anterior foi interrompida antes de terminar. Continue a ordem de onde parou, sem refazer o que já foi feito. Ordem original: ${ordem.prompt}`
+      : ordem.prompt;
+  const retomar = (opcoes.respostaDecisao || continuar) && ordem.session_id ? ordem.session_id : undefined;
+  if (continuar) registrarMensagem(conversa.id, "claudio", "sistema", "Retomando a execução interrompida.");
 
+  const pastaLogs = resolve(config.raiz, "dados", "logs");
+  mkdirSync(pastaLogs, { recursive: true });
+  const log = createWriteStream(resolve(pastaLogs, `exec-${execId}.jsonl`), { flags: "a" });
+  let sessionIdInicial: string | undefined;
   let ultimoTexto = "";
   const { promessa } = rodarClaude(prompt, {
     cwd,
     modelo,
     permissionMode: "auto",
-    maxTurns: Number(lerConfig(ordem.tipo === "continua" ? "max_turns_continua" : "max_turns_pontual", "60")),
+    maxTurns: Number(lerConfig(ordem.tipo === "continua" ? "max_turns_continua" : "max_turns_pontual", "400")),
     appendSystemPrompt: promptSistema(ordem, projeto),
     settingsArquivo: arquivoSettingsHooks(),
     addDirs,
@@ -138,6 +150,11 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
     ...permissoesPeloClaudio(`ordem-${ordem.id}`, { CLAUDIO_ORDEM_ID: String(ordem.id), CLAUDIO_CONVERSA_ID: String(conversa.id) }),
     sinal: controlador.signal,
     aoEvento: (e: Evento) => {
+      log.write(JSON.stringify(e) + "\n");
+      if (e.type === "system" && e.subtype === "init" && e.session_id) {
+        sessionIdInicial = e.session_id;
+        executar("UPDATE execucoes SET session_id = ? WHERE id = ?", e.session_id, execId);
+      }
       const rl = extrairRateLimits(e);
       if (rl) registrarSnapshot(rl, "stream");
       if (e.type === "assistant") {
@@ -149,6 +166,7 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
   });
 
   const res = await promessa;
+  log.end();
   emExecucao.delete(ordem.id);
   const fim = res.resultado;
   const saida = fim?.structured_output as { status?: string; resumo?: string; progresso_feito?: number; progresso_total?: number; unidade?: string; pergunta?: string; opcoes?: string[] } | undefined;
@@ -157,18 +175,24 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
   let erro: string | null = null;
   let resumo = saida?.resumo ?? (ultimoTexto ? ultimoTexto.slice(0, 1500) : null);
 
-  if (!fim || fim.is_error) {
-    erro = typeof fim?.result === "string" ? fim.result : res.stderr.slice(-800) || "sem resultado";
+  if (!fim) {
+    // O processo acabou sem o evento final (limite de turnos, queda, cancelamento): dá para retomar a sessão.
+    resultado = controlador.signal.aborted ? "cancelada" : "interrompida";
+    erro = `processo terminou (código ${res.codigoSaida}) sem o evento de resultado após ${res.eventos.length} eventos. ${res.stderr.slice(-500)}`.trim();
+  } else if (fim.is_error) {
+    erro = typeof fim.result === "string" ? fim.result : res.stderr.slice(-800) || "erro sem detalhe";
     if (/rate|limit|quota/i.test(erro)) resultado = "limite";
+    else if (fim.subtype === "error_max_turns") resultado = "interrompida";
   } else if (saida?.status === "precisa_decisao") resultado = "precisa_decisao";
   else if (saida?.status === "erro") {
     resultado = "erro";
     erro = saida.resumo ?? "erro relatado pelo Claude";
   } else resultado = "concluida";
 
+  const sessionId = (fim?.session_id as string | undefined) ?? sessionIdInicial ?? ordem.session_id ?? null;
   executar(
     "UPDATE execucoes SET session_id = ?, fim = datetime('now'), tokens_in = ?, tokens_out = ?, tokens_cache = ?, custo_usd = ?, resultado = ?, resumo = ?, erro = ? WHERE id = ?",
-    fim?.session_id ?? null,
+    sessionId,
     fim?.usage?.input_tokens ?? 0,
     fim?.usage?.output_tokens ?? 0,
     (fim?.usage?.cache_read_input_tokens ?? 0) + (fim?.usage?.cache_creation_input_tokens ?? 0),
@@ -183,14 +207,15 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
   let estado: Ordem["estado"];
   if (resultado === "precisa_decisao") estado = "aguardando_decisao";
   else if (resultado === "erro") estado = "erro";
-  else if (resultado === "limite") estado = "fila";
+  else if (resultado === "cancelada") estado = "pausada";
+  else if (resultado === "limite" || resultado === "interrompida") estado = "fila";
   else if (ordem.tipo === "continua" && saida?.status === "parcial") estado = "fila";
   else estado = "concluida";
 
   executar(
     "UPDATE ordens SET estado = ?, session_id = ?, progresso_feito = COALESCE(?, progresso_feito), progresso_total = COALESCE(?, progresso_total), unidade = COALESCE(?, unidade), ligada = CASE WHEN ? = 'concluida' THEN 0 ELSE ligada END, atualizado_em = datetime('now') WHERE id = ?",
     estado,
-    fim?.session_id ?? ordem.session_id,
+    sessionId,
     saida?.progresso_feito ?? null,
     saida?.progresso_total ?? null,
     saida?.unidade ?? null,
@@ -201,7 +226,8 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
   if (resultado === "precisa_decisao") {
     registrarMensagem(conversa.id, "claude", "resumo", resumo ?? "Preciso de uma decisão.");
     criarDecisao({ execucao_id: execId, conversa_id: conversa.id, tipo: "pergunta", payload: { ordem_id: ordem.id, pergunta: saida?.pergunta ?? "?", opcoes: saida?.opcoes ?? [] } });
-  } else if (resultado === "erro" || resultado === "limite") {
+  } else if (resultado === "erro" || resultado === "limite" || resultado === "interrompida" || resultado === "cancelada") {
+    if (ultimoTexto && resultado !== "cancelada") registrarMensagem(conversa.id, "claude", "resumo", `(última mensagem antes da interrupção) ${ultimoTexto.slice(0, 1200)}`);
     registrarMensagem(conversa.id, "claudio", "sistema", `Execução terminou com ${resultado}: ${erro ?? ""}`.trim());
   } else {
     registrarMensagem(conversa.id, "claude", "resumo", resumo ?? "Concluído sem resumo.");

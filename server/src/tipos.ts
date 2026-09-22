@@ -1,6 +1,6 @@
 export type TipoOrdem = "pontual" | "continua";
 export type EstadoOrdem = "fila" | "rodando" | "aguardando_decisao" | "pausada" | "concluida" | "erro";
-export type ResultadoExecucao = "concluida" | "precisa_decisao" | "erro" | "limite" | "cancelada";
+export type ResultadoExecucao = "concluida" | "precisa_decisao" | "erro" | "limite" | "cancelada" | "interrompida";
 export type Papel = "eu" | "claudio" | "claude";
 export type TipoMensagem = "resumo" | "decisao" | "livre" | "sistema";
 
