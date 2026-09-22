@@ -38,13 +38,20 @@ function normalizarRemoto(url: string): string {
 /** Mapa remoto-normalizado -> caminho local, varrendo as pastas irmãs. */
 export async function mapearClonesLocais(): Promise<Map<string, string>> {
   const mapa = new Map<string, string>();
-  let entradas: string[] = [];
-  try {
-    entradas = readdirSync(config.pastaProjetos, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => resolve(config.pastaProjetos, d.name));
-  } catch {
-    return mapa;
+  // Varre a pasta dos projetos e, um nível abaixo, subpastas (ex.: espanhol/app, espanhol/dados).
+  const listar = (base: string): string[] => {
+    try {
+      return readdirSync(base, { withFileTypes: true })
+        .filter((d) => d.isDirectory() && !d.name.startsWith(".") && d.name !== "node_modules")
+        .map((d) => resolve(base, d.name));
+    } catch {
+      return [];
+    }
+  };
+  const entradas: string[] = [];
+  for (const pasta of listar(config.pastaProjetos)) {
+    entradas.push(pasta);
+    if (!existsSync(resolve(pasta, ".git"))) entradas.push(...listar(pasta));
   }
   for (const pasta of entradas) {
     if (!existsSync(resolve(pasta, ".git"))) continue;
@@ -103,10 +110,10 @@ export async function importarDoGithub(): Promise<{ criados: string[]; satelites
 }
 
 /** Garante um clone local do projeto e devolve o caminho. */
-export async function garantirClone(projeto: Projeto): Promise<string> {
+export async function garantirClone(projeto: Projeto, pastaPai = config.pastaProjetos): Promise<string> {
   if (projeto.caminho && existsSync(projeto.caminho)) return projeto.caminho;
   if (!projeto.repo) throw new Error(`Projeto ${projeto.nome} não tem repositório nem caminho local`);
-  const destino = resolve(config.pastaProjetos, projeto.nome);
+  const destino = resolve(pastaPai, projeto.nome);
   if (!existsSync(destino)) {
     await execFileAsync(GH, ["repo", "clone", projeto.repo, destino], { windowsHide: true, shell });
   }

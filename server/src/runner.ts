@@ -1,6 +1,6 @@
 // Runner: executa uma ordem (ou um pedaço dela) chamando o Claude Code em modo headless.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { extrairRateLimits, rodarClaude, textoDoEvento, type Evento } from "./claude.ts";
 import { config } from "./config.ts";
 import { executar, lerConfig, um } from "./db.ts";
@@ -101,7 +101,14 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
   const projeto = um<Projeto>("SELECT * FROM projetos WHERE id = ?", ordem.projeto_id);
   if (!projeto) throw new Error(`Projeto ${ordem.projeto_id} não existe`);
   const cwd = await garantirClone(projeto);
-  const addDirs = satelitesDe(projeto.id).map((s) => s.caminho).filter((c): c is string => !!c);
+  const addDirs: string[] = [];
+  for (const sat of satelitesDe(projeto.id)) {
+    try {
+      addDirs.push(await garantirClone(sat, dirname(cwd)));
+    } catch (e) {
+      console.warn(`[runner] satélite ${sat.nome} sem clone:`, (e as Error).message);
+    }
+  }
   const conversa = conversaDaOrdem(ordem);
   const modelo = projeto.modelo_padrao ?? lerConfig("modelo_executor", "sonnet");
 
