@@ -24,7 +24,15 @@ npm run build     # compila o PWA em web/dist
 npm run dev       # sobe o servidor em http://localhost:3737 (serve o PWA)
 ```
 
-No celular, com o Tailscale ligado nos dois aparelhos, abra `http://<nome-do-pc>:3737` e adicione à tela inicial.
+## Acesso pelo celular (Tailscale)
+
+Com o Tailscale ligado nos dois aparelhos e o recurso Serve habilitado na tailnet, o PC expõe o Claudio em HTTPS (necessário para as notificações push):
+
+```bash
+tailscale serve --bg 3737
+```
+
+Isso fica salvo e sobrevive a reinícios. A URL no celular é `https://<nome-do-pc>.<tailnet>.ts.net` (aqui: `https://geremias.tailcd9281.ts.net`). Adicione à tela inicial e ligue as notificações na tela ⚙. Para desligar: `tailscale serve --https=443 off`.
 
 ## Deixar rodando sozinho (Windows)
 
