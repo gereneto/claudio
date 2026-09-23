@@ -17,7 +17,8 @@ if (existsSync(dist)) {
   app.get("/", (c) => c.text("Claudio: API no ar. O PWA ainda não foi compilado (web/dist)."));
 }
 
-const servidor = serve({ fetch: app.fetch, port: config.porta, hostname: "0.0.0.0" }, (info) => {
+// Sem hostname: ouve em IPv4 e IPv6 (localhost no Windows resolve primeiro para ::1).
+const servidor = serve({ fetch: app.fetch, port: config.porta }, (info) => {
   console.log(`Claudio ouvindo em http://localhost:${info.port} (banco: ${config.dbPath})`);
   if (process.env.CLAUDIO_SEM_ESCALONADOR !== "1") {
     iniciarEscalonador();

@@ -69,7 +69,7 @@ function Iniciar {
   $tentativas = 0
   while ($tentativas -lt 60) {
     Start-Sleep -Seconds 1
-    try { Invoke-RestMethod "http://localhost:$Porta/api/estado" -TimeoutSec 2 | Out-Null; Write-Output "Servidor no ar em http://localhost:$Porta"; return } catch {}
+    try { Invoke-RestMethod "http://127.0.0.1:$Porta/api/estado" -TimeoutSec 2 | Out-Null; Write-Output "Servidor no ar em http://127.0.0.1:$Porta"; return } catch {}
     $tentativas++
   }
   Write-Output "Tarefa disparada, mas o servidor ainda não respondeu. Veja os logs em $Logs"
@@ -91,10 +91,10 @@ function Status {
   $p = Processo-Vivo
   Write-Output ("Processo: " + $(if ($p) { "rodando (pid $($p.Id), desde $($p.StartTime))" } else { "parado" }))
   try {
-    $e = Invoke-RestMethod "http://localhost:$Porta/api/estado" -TimeoutSec 3
+    $e = Invoke-RestMethod "http://127.0.0.1:$Porta/api/estado" -TimeoutSec 3
     Write-Output "API: respondendo · escalonador: $($e.escalonador.ultima.texto) · rodando: $($e.rodando -join ', ')"
     if ($e.limites) { Write-Output "Limites: 5h $($e.limites.h5_pct)% · semana $($e.limites.d7_pct)%" }
-  } catch { Write-Output "API: sem resposta em http://localhost:$Porta" }
+  } catch { Write-Output "API: sem resposta em http://127.0.0.1:$Porta" }
 }
 
 switch ($Acao) {
