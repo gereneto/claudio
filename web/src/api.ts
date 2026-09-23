@@ -119,6 +119,13 @@ export const api = {
   retomar: () => pedir("/api/escalonador/retomar", { method: "POST" }),
   limitesManual: (d: Partial<Limites>) => pedir("/api/limites/manual", { method: "POST", body: JSON.stringify(d) }),
   atualizarLimites: () => pedir<{ ok: boolean }>("/api/limites/atualizar", { method: "POST" }),
+  config: () => pedir<Record<string, string>>("/api/config"),
+  salvarConfig: (d: Record<string, string>) => pedir("/api/config", { method: "PATCH", body: JSON.stringify(d) }),
+  pushChave: () => pedir<{ chave: string }>("/api/push/chave"),
+  pushAssinar: (assinatura: unknown, aparelho: string) => pedir("/api/push/assinar", { method: "POST", body: JSON.stringify({ assinatura, aparelho }) }),
+  pushCancelar: (endpoint: string) => pedir("/api/push/assinar", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
+  pushTeste: () => pedir<{ enviadas: number; removidas: number }>("/api/push/teste", { method: "POST" }),
+  pushAssinaturas: () => pedir<{ id: number; aparelho: string | null; criado_em: string; ultimo_envio: string | null }[]>("/api/push/assinaturas"),
 };
 
 /** Assina os eventos ao vivo do servidor. Devolve a função para cancelar. */

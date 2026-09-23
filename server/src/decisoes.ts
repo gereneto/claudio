@@ -1,6 +1,7 @@
 // Decisões pendentes: pedidos de permissão (hook HTTP) e perguntas (saída estruturada).
 import { executar, todos, um } from "./db.ts";
 import { barramento } from "./eventos.ts";
+import { notificar } from "./push.ts";
 import type { Decisao } from "./tipos.ts";
 
 const pendentes = new Map<number, (resposta: string) => void>();
@@ -16,6 +17,9 @@ export function criarDecisao(dados: { execucao_id: number | null; conversa_id: n
   const d = um<Decisao>("SELECT * FROM decisoes WHERE id = ?", Number(r.lastInsertRowid))!;
   if (dados.conversa_id) executar("UPDATE conversas SET lida = 0, atualizado_em = datetime('now') WHERE id = ?", dados.conversa_id);
   barramento.publicar("decisao", d);
+  const p = dados.payload as { questions?: { question: string }[]; tool_name?: string };
+  const corpo = dados.tipo === "pergunta" ? (p.questions?.map((q) => q.question).join(" · ") ?? "Claude tem uma pergunta.") : `Permissão pedida: ${p.tool_name ?? "ferramenta"}`;
+  void notificar({ titulo: "Claudio precisa de você", corpo: corpo.slice(0, 180), url: dados.conversa_id ? `/#/conversa/${dados.conversa_id}` : "/#/conversas", etiqueta: `decisao-${d.id}` });
   return d;
 }
 

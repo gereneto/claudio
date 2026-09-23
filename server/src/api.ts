@@ -10,6 +10,8 @@ import { avaliar, historico, registrarSnapshot, ritmoAlvo, ultimoSnapshot } from
 import { importarDoGithub } from "./projetos.ts";
 import { conversar, emExecucao, executarOrdem, registrarMensagem } from "./runner.ts";
 import { atualizarLimites, receberStatusLine, sentinelaAtiva } from "./sentinela.ts";
+import { assinar, assinaturas, cancelarAssinatura, chavePublica, notificar } from "./push.ts";
+import type { PushSubscription } from "web-push";
 import type { Conversa, Decisao, Execucao, Mensagem, Ordem, Projeto } from "./tipos.ts";
 
 export const app = new Hono();
@@ -231,6 +233,22 @@ app.patch("/api/config", async (c) => {
   for (const [k, v] of Object.entries(d)) if (chavesConfig.includes(k)) gravarConfig(k, String(v));
   return c.json({ ok: true });
 });
+
+// ---------- Notificações push ----------
+app.get("/api/push/chave", (c) => c.json({ chave: chavePublica() }));
+app.get("/api/push/assinaturas", (c) => c.json(assinaturas()));
+app.post("/api/push/assinar", async (c) => {
+  const corpo = (await c.req.json()) as { assinatura: PushSubscription; aparelho?: string };
+  if (!corpo?.assinatura?.endpoint) return c.json({ erro: "assinatura inválida" }, 400);
+  assinar(corpo.assinatura, corpo.aparelho);
+  return c.json({ ok: true });
+});
+app.delete("/api/push/assinar", async (c) => {
+  const { endpoint } = (await c.req.json()) as { endpoint: string };
+  cancelarAssinatura(endpoint);
+  return c.json({ ok: true });
+});
+app.post("/api/push/teste", async (c) => c.json(await notificar({ titulo: "Claudio", corpo: "Notificações funcionando neste aparelho.", url: "/#/conversas" })));
 
 // ---------- Eventos ao vivo (SSE) ----------
 app.get("/api/eventos", (c) =>

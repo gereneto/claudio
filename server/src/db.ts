@@ -105,6 +105,16 @@ const migracoes: string[] = [
     valor TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE IF NOT EXISTS assinaturas_push (
+    id INTEGER PRIMARY KEY,
+    endpoint TEXT NOT NULL UNIQUE,
+    dados TEXT NOT NULL,
+    aparelho TEXT,
+    criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+    ultimo_envio TEXT
+  );
+  `,
 ];
 
 db.exec("CREATE TABLE IF NOT EXISTS _migracoes (n INTEGER PRIMARY KEY)");

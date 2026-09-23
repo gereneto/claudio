@@ -8,6 +8,7 @@ import { criarDecisao } from "./decisoes.ts";
 import { barramento } from "./eventos.ts";
 import { registrarSnapshot } from "./limites.ts";
 import { garantirClone, satelitesDe } from "./projetos.ts";
+import { notificar } from "./push.ts";
 import type { Conversa, Execucao, Ordem, Projeto } from "./tipos.ts";
 
 export const emExecucao = new Map<number, AbortController>();
@@ -238,6 +239,10 @@ export async function executarOrdem(ordem: Ordem, opcoes: { respostaDecisao?: st
     registrarMensagem(conversa.id, "claude", "resumo", resumo ?? "Concluído sem resumo.");
   }
   barramento.publicar("ordem", { id: ordem.id, estado });
+  if (resultado !== "precisa_decisao" && resultado !== "cancelada") {
+    const rotulo = resultado === "concluida" ? (estado === "concluida" ? "Ordem concluída" : "Bloco concluído") : `Ordem parou: ${resultado}`;
+    void notificar({ titulo: `${rotulo} · ${ordem.titulo}`, corpo: (resumo ?? erro ?? "").slice(0, 180), url: `/#/conversa/${conversa.id}`, etiqueta: `ordem-${ordem.id}` });
+  }
   return um<Execucao>("SELECT * FROM execucoes WHERE id = ?", execId)!;
 }
 
@@ -267,5 +272,6 @@ export async function conversar(conversa: Conversa, texto: string): Promise<stri
   const resposta = typeof fim?.result === "string" && fim.result ? fim.result : `Erro: ${res.stderr.slice(-300) || "sem resposta"}`;
   if (fim?.session_id) executar("UPDATE conversas SET session_id = ? WHERE id = ?", fim.session_id, conversa.id);
   registrarMensagem(conversa.id, "claude", "livre", resposta);
+  void notificar({ titulo: conversa.titulo, corpo: resposta.slice(0, 180), url: `/#/conversa/${conversa.id}`, etiqueta: `conversa-${conversa.id}` });
   return resposta;
 }
