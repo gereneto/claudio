@@ -27,6 +27,7 @@ Um projeto sem clone local é clonado em `MEU\<nome>` com `gh repo clone gerenet
 | triduo-pascal | `MEU\Semana Santa\site` | |
 | etica_chalita | `MEU\etica\site` | |
 | agenda | sem clone | |
+| biblioteca | sem clone | |
 | catecismo | sem clone | |
 | imagens_hist_9 | sem clone | |
 | magisterio-tematico | sem clone | |
@@ -40,7 +41,7 @@ Site de leitura da Ilíada em tradução portuguesa em versos, uma estrofe por p
 
 - Ler o `README.md` antes de mexer. O texto vive em `dados/canto-XX.js`, um objeto por estrofe com `titulo`, `versos`, `linhas` e `notas`; `{1}`, `{2}` nas linhas apontam para a lista `notas`.
 - Canto novo: criar `dados/canto-XX.js` com `window.ILIADA.cantos.push({...})` e incluir o `<script>` no `index.html`, na ordem.
-- Tradução em versos livres, fiel ao sentido e agradável em português, sem hexâmetro nem arcaísmos forçados. Termo obscuro do português clássico vira expressão clara com nota explicando o grego e a tradição. Falas diretas entre aspas curvas.
+- Falas diretas entre aspas curvas. O gosto na tradução e nas notas está em `memoria/projetos/iliada.md`.
 - Conferir a sintaxe com `node --check` antes do push, para o site não quebrar.
 - Commits no padrão `Canto V, estrofes 12-20 (vv. 239-420)`.
 - Trabalho longo em andamento: um bloco de cerca de 200 versos por pedaço, terminando no fim de uma cena. Progresso em versos, de 15.693. Parou no Canto V, verso 238. Está pausado a pedido do Geremias.

@@ -25,12 +25,17 @@ A primeira versão tinha servidor Node, banco SQLite, PWA, Tailscale com HTTPS, 
 
 ## Como uma ordem anda
 
-1. Escrevo na página. Ela fica "aguardando o Claudio".
+1. Toco em "Nova ordem" e preencho o formulário: título opcional, projeto (um dos repositórios do GitHub, ou nenhum), repetição (uma vez ou cíclica, com a frequência) e a explicação, que é a base dos prompts. A ordem fica "aguardando o Claudio". Posso editar a ordem depois.
 2. Na próxima hora, a rodada lê a ordem, descobre o projeto e decide se é curta ou longa.
 3. Se falta algo que muda o resultado, ela pergunta com botões de opção e a conversa fica "aguardando você".
 4. Ordem curta: um subagente faz, com commit e push, e a resposta chega como relatório.
 5. Ordem longa: a rodada manda um plano e faz um pedaço por hora enquanto houver folga nos limites.
-6. Posso pausar, retomar ou arquivar qualquer conversa.
+6. Ordem cíclica: o Claudio responde com o que vai fazer a cada vez e roda quando vence, só se houver folga nos limites. Sem folga, espera a próxima janela, sem acumular execuções atrasadas.
+7. Posso pausar, retomar ou arquivar qualquer conversa.
+
+## Memória de preferências
+
+Ao longo das conversas vou dizendo o que gostei e o que não gostei. O Claudio guarda isso numa memória interna, organizada por preferências gerais, comportamento dele, projetos e tipos de trabalho, e leva os itens relevantes para os prompts de cada ordem. Quando anota algo novo, avisa numa linha no relatório. A memória fica em `memoria/`, fora do git, porque o repositório é público. Eu avalio pela qualidade dos resultados; se não funcionar, repensamos.
 
 ## Gestão de uso
 

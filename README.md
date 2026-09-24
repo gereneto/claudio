@@ -14,9 +14,10 @@ pagina/claudio.html        a página publicada no claude.ai
 orquestrador/INSTRUCOES.md o que a rodada faz, passo a passo
 orquestrador/projetos.md   onde fica cada projeto e as regras de cada um
 orquestrador/estrategia.md modelos por tipo de trabalho e custos observados
+memoria/                   preferências que o Claudio aprende comigo (fora do git)
 dados/diario.md            uma linha por rodada (fora do git)
 ```
 
-A tarefa agendada se chama `claudio-rodada` e aparece em "Agendadas" na barra lateral do app Claude. Ela só aponta para `orquestrador/INSTRUCOES.md`, então mudar o comportamento é mudar esses arquivos.
+A tarefa agendada se chama `claudio-rodada` e aparece em "Routines" no app Claude. Ela só aponta para `orquestrador/INSTRUCOES.md`, então mudar o comportamento é mudar esses arquivos. O modo de permissão dela precisa estar em **Auto**, no formulário de edição da tarefa; no modo manual, a rodada para no primeiro comando e fica esperando aprovação.
 
 A versão anterior, com servidor Node, PWA e Tailscale, está na tag `v0-servidor`. As verificações técnicas daquela fase estão em [docs/fase0-resultados.md](docs/fase0-resultados.md).
